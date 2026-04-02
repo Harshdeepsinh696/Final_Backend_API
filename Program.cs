@@ -1,27 +1,31 @@
 ﻿using Final_Backend_API.Data;
 using Final_Backend_API.Services;
 using Microsoft.EntityFrameworkCore;
-using Microsoft.OpenApi;
-using Npgsql.EntityFrameworkCore.PostgreSQL;
-//using Microsoft.OpenApi.Models;  // ✅ ADD THIS
 
 var builder = WebApplication.CreateBuilder(args);
 
 // ── Services ──
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new OpenApiInfo
-    {
-        Title = "Smart Medicine Reminder API",
-        Version = "v1"
-    });
-});
+builder.Services.AddSwaggerGen();
 
-// ── Database ──
+// ── Database (Auto-detects Local vs Production) ──
+var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+var isPostgres = connectionString != null && connectionString.TrimStart().StartsWith("Host=", StringComparison.OrdinalIgnoreCase);
+
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
+{
+    if (isPostgres)
+    {
+        options.UseNpgsql(connectionString);
+        Console.WriteLine("✅ Using PostgreSQL (Production)");
+    }
+    else
+    {
+        options.UseSqlServer(connectionString);
+        Console.WriteLine("✅ Using SQL Server (Local)");
+    }
+});
 
 // ── CORS ──
 builder.Services.AddCors(options =>
