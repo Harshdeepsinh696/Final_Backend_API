@@ -7,18 +7,26 @@ var builder = WebApplication.CreateBuilder(args);
 // ── Services ──
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
 
-// ── Database (Auto-detects Local vs Production) ──
+// Swagger
+builder.Services.AddSwaggerGen(c =>
+{
+    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
+    {
+        Title = "Smart Medicine Reminder API",
+        Version = "v1"
+    });
+});
+
+// ── Database (Auto Detect Local vs Render) ──
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-var isPostgres = connectionString != null && connectionString.TrimStart().StartsWith("Host=", StringComparison.OrdinalIgnoreCase);
-
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    if (isPostgres)
+    if (!string.IsNullOrEmpty(connectionString) &&
+        connectionString.TrimStart().StartsWith("Host=", StringComparison.OrdinalIgnoreCase))
     {
         options.UseNpgsql(connectionString);
-        Console.WriteLine("✅ Using PostgreSQL (Production)");
+        Console.WriteLine("✅ Using PostgreSQL (Render)");
     }
     else
     {
@@ -31,7 +39,9 @@ builder.Services.AddDbContext<AppDbContext>(options =>
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
-        policy.AllowAnyOrigin().AllowAnyMethod().AllowAnyHeader());
+        policy.AllowAnyOrigin()
+              .AllowAnyMethod()
+              .AllowAnyHeader());
 });
 
 // ── SMS Service ──
@@ -42,7 +52,10 @@ builder.Services.AddHostedService<MedicineReminderService>();
 
 var app = builder.Build();
 
+// ── Middleware ──
 app.UseRouting();
+
+// Swagger
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
