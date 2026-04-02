@@ -38,6 +38,7 @@ builder.Services.AddHostedService<MedicineReminderService>();
 
 var app = builder.Build();
 
+app.UseRouting();
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
