@@ -38,14 +38,11 @@ builder.Services.AddHostedService<MedicineReminderService>();
 
 var app = builder.Build();
 
-if (app.Environment.IsDevelopment())
+app.UseSwagger();
+app.UseSwaggerUI(c =>
 {
-    app.UseSwagger();
-    app.UseSwaggerUI(c =>
-    {
-        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Smart Medicine Reminder API v1");
-    });
-}
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Smart Medicine Reminder API v1");
+});
 
 app.UseCors("AllowAll");
 app.UseAuthorization();
