@@ -2,6 +2,7 @@
 using Final_Backend_API.Services;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.OpenApi;
+using Npgsql.EntityFrameworkCore.PostgreSQL;
 //using Microsoft.OpenApi.Models;  // ✅ ADD THIS
 
 var builder = WebApplication.CreateBuilder(args);
@@ -20,7 +21,7 @@ builder.Services.AddSwaggerGen(c =>
 
 // ── Database ──
 builder.Services.AddDbContext<AppDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+    options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 // ── CORS ──
 builder.Services.AddCors(options =>
