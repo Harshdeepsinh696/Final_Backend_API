@@ -4,21 +4,11 @@ using Microsoft.EntityFrameworkCore;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// ── Services ──
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
+builder.Services.AddSwaggerGen();
 
-// ── Swagger ──
-builder.Services.AddSwaggerGen(c =>
-{
-    c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
-    {
-        Title = "Smart Medicine Reminder API",
-        Version = "v1"
-    });
-});
-
-// ── Database (SQLite - works on Local + Render Free) ──
+// SQLite
 var dbPath = Path.Combine(AppContext.BaseDirectory, "medicine.db");
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
@@ -26,7 +16,7 @@ builder.Services.AddDbContext<AppDbContext>(options =>
     Console.WriteLine($"✅ Using SQLite at: {dbPath}");
 });
 
-// ── CORS ──
+// CORS
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("AllowAll", policy =>
@@ -35,15 +25,12 @@ builder.Services.AddCors(options =>
               .AllowAnyHeader());
 });
 
-// ── SMS Service ──
 builder.Services.AddHttpClient<SmsService>();
-
-// ── Background Reminder Service ──
 builder.Services.AddHostedService<MedicineReminderService>();
 
 var app = builder.Build();
 
-// ── Migrate Database ──
+// Migrate DB
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
@@ -58,14 +45,12 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// ── Middleware (Order matters!) ──
+// Middleware
 app.UseRouting();
-
 app.UseCors("AllowAll");
-
 app.UseAuthorization();
 
-// ── Swagger UI (always enabled, even in production on Render) ──
+// Swagger - always on
 app.UseSwagger();
 app.UseSwaggerUI(c =>
 {
@@ -73,11 +58,22 @@ app.UseSwaggerUI(c =>
     c.RoutePrefix = "swagger";
 });
 
+// ✅ Root → redirects to swagger
+app.MapGet("/", () => Results.Redirect("/swagger"));
+
+// ✅ Health check - test this first!
+app.MapGet("/health", () => Results.Ok(new
+{
+    status = "✅ Running",
+    time = DateTime.UtcNow,
+    swagger = "Visit /swagger"
+}));
+
 app.MapControllers();
 
-// ── Port Binding for Render ──
+// Port for Render
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
 app.Urls.Add($"http://*:{port}");
-Console.WriteLine($"🚀 Starting on port {port}");
+Console.WriteLine($"🚀 Running on port {port}");
 
 app.Run();
