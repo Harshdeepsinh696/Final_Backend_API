@@ -8,7 +8,7 @@ builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
 
-// SQLite
+// ── Database - HARDCODED SQLITE (ignores appsettings.json) ──
 var dbPath = Path.Combine(AppContext.BaseDirectory, "medicine.db");
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
