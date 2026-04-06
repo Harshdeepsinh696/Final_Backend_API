@@ -8,7 +8,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
 
-// Swagger
+// ── Swagger ──
 builder.Services.AddSwaggerGen(c =>
 {
     c.SwaggerDoc("v1", new Microsoft.OpenApi.Models.OpenApiInfo
@@ -18,32 +18,13 @@ builder.Services.AddSwaggerGen(c =>
     });
 });
 
-// ── Database (Auto Detect Local vs Render) ──
-//var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
-//builder.Services.AddDbContext<AppDbContext>(options =>
-//{
-//    if (!string.IsNullOrEmpty(connectionString) &&
-//        connectionString.TrimStart().StartsWith("Host=", StringComparison.OrdinalIgnoreCase))
-//    {
-//        options.UseNpgsql(connectionString);
-//        Console.WriteLine("✅ Using PostgreSQL (Render)");
-//    }
-//    else
-//    {
-//        options.UseSqlServer(connectionString);
-//        Console.WriteLine("✅ Using SQL Server (Local)");
-//    }
-//});
-
-// ── Database (Local + Render Support) ──
-// ── Database (SQLite for Local + Render Free) ──
+// ── Database (SQLite - works on Local + Render Free) ──
+var dbPath = Path.Combine(AppContext.BaseDirectory, "medicine.db");
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    options.UseSqlite("Data Source=medicine.db");
-    Console.WriteLine("✅ Using SQLite (Local + Render Free)");
+    options.UseSqlite($"Data Source={dbPath}");
+    Console.WriteLine($"✅ Using SQLite at: {dbPath}");
 });
-
-
 
 // ── CORS ──
 builder.Services.AddCors(options =>
@@ -62,40 +43,41 @@ builder.Services.AddHostedService<MedicineReminderService>();
 
 var app = builder.Build();
 
-// ── Middleware ──
-app.UseRouting();
-
-// Swagger
-app.UseSwagger();
-app.UseSwaggerUI(c =>
-{
-    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Smart Medicine Reminder API v1");
-    c.RoutePrefix = "swagger"; // IMPORTANT
-});
-
-app.UseCors("AllowAll");
-app.UseAuthorization();
-app.MapControllers();
-
-
-//add
+// ── Migrate Database ──
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     try
     {
         db.Database.Migrate();
+        Console.WriteLine("✅ Database migrated successfully.");
     }
     catch (Exception ex)
     {
-        Console.WriteLine("Migration error: " + ex.Message);
+        Console.WriteLine("❌ Migration error: " + ex.Message);
     }
 }
 
-// add this
+// ── Middleware (Order matters!) ──
+app.UseRouting();
+
+app.UseCors("AllowAll");
+
+app.UseAuthorization();
+
+// ── Swagger UI (always enabled, even in production on Render) ──
+app.UseSwagger();
+app.UseSwaggerUI(c =>
+{
+    c.SwaggerEndpoint("/swagger/v1/swagger.json", "Smart Medicine Reminder API v1");
+    c.RoutePrefix = "swagger";
+});
+
+app.MapControllers();
+
+// ── Port Binding for Render ──
 var port = Environment.GetEnvironmentVariable("PORT") ?? "5000";
 app.Urls.Add($"http://*:{port}");
-
-app.Run();
+Console.WriteLine($"🚀 Starting on port {port}");
 
 app.Run();
