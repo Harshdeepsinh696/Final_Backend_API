@@ -7,6 +7,7 @@
 	<ItemGroup>
 		<!-- SQL Server (Local Development) -->
 		<PackageReference Include="Microsoft.Data.SqlClient" Version="7.0.0" />
+		<PackageReference Include="Microsoft.EntityFrameworkCore.Sqlite" Version="8.0.0" />
 		<PackageReference Include="Microsoft.EntityFrameworkCore.SqlServer" Version="8.0.0" />
 
 		<!-- PostgreSQL (Production/Render) -->

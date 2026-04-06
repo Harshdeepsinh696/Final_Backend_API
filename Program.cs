@@ -19,21 +19,40 @@ builder.Services.AddSwaggerGen(c =>
 });
 
 // ── Database (Auto Detect Local vs Render) ──
-var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+//var connectionString = builder.Configuration.GetConnectionString("DefaultConnection");
+//builder.Services.AddDbContext<AppDbContext>(options =>
+//{
+//    if (!string.IsNullOrEmpty(connectionString) &&
+//        connectionString.TrimStart().StartsWith("Host=", StringComparison.OrdinalIgnoreCase))
+//    {
+//        options.UseNpgsql(connectionString);
+//        Console.WriteLine("✅ Using PostgreSQL (Render)");
+//    }
+//    else
+//    {
+//        options.UseSqlServer(connectionString);
+//        Console.WriteLine("✅ Using SQL Server (Local)");
+//    }
+//});
+
+// ── Database (Local + Render Support) ──
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    if (!string.IsNullOrEmpty(connectionString) &&
-        connectionString.TrimStart().StartsWith("Host=", StringComparison.OrdinalIgnoreCase))
+    var isRender = Environment.GetEnvironmentVariable("RENDER") != null;
+
+    if (isRender)
     {
-        options.UseNpgsql(connectionString);
-        Console.WriteLine("✅ Using PostgreSQL (Render)");
+        options.UseSqlite("Data Source=/data/medicine.db");
+        Console.WriteLine("✅ Using Render SQLite DB");
     }
     else
     {
-        options.UseSqlServer(connectionString);
-        Console.WriteLine("✅ Using SQL Server (Local)");
+        options.UseSqlite("Data Source=medicine.db");
+        Console.WriteLine("✅ Using Local SQLite DB");
     }
 });
+
+
 
 // ── CORS ──
 builder.Services.AddCors(options =>
@@ -65,4 +84,13 @@ app.UseSwaggerUI(c =>
 app.UseCors("AllowAll");
 app.UseAuthorization();
 app.MapControllers();
+
+
+//add
+using (var scope = app.Services.CreateScope())
+{
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    db.Database.Migrate();
+}
+
 app.Run();
