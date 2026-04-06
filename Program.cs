@@ -36,20 +36,11 @@ builder.Services.AddSwaggerGen(c =>
 //});
 
 // ── Database (Local + Render Support) ──
+// ── Database (SQLite for Local + Render Free) ──
 builder.Services.AddDbContext<AppDbContext>(options =>
 {
-    var isRender = Environment.GetEnvironmentVariable("RENDER") != null;
-
-    if (isRender)
-    {
-        options.UseSqlite("Data Source=/data/medicine.db");
-        Console.WriteLine("✅ Using Render SQLite DB");
-    }
-    else
-    {
-        options.UseSqlite("Data Source=medicine.db");
-        Console.WriteLine("✅ Using Local SQLite DB");
-    }
+    options.UseSqlite("Data Source=medicine.db");
+    Console.WriteLine("✅ Using SQLite (Local + Render Free)");
 });
 
 
@@ -90,7 +81,14 @@ app.MapControllers();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+    try
+    {
+        db.Database.Migrate();
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("Migration error: " + ex.Message);
+    }
 }
 
 app.Run();
